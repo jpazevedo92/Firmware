@@ -602,57 +602,61 @@ void Simulator::send()
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
-		if (state == State::WaitingForActuatorControls) {
+		(void)fds_ekf2_timestamps;
+		(void)state;
+		//if (state == State::WaitingForActuatorControls) {
 #endif
-			// Wait for up to 100ms for data.
-			int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
+		// Wait for up to 100ms for data.
+		int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
 
-			if (pret == 0) {
-				// Timed out, try again.
-				continue;
-			}
-
-			if (pret < 0) {
-				PX4_ERR("poll error %s", strerror(errno));
-				continue;
-			}
-
-			if (fds_actuator_outputs[0].revents & POLLIN) {
-				// Got new data to read, update all topics.
-				parameters_update(false);
-				_vehicle_status_sub.update(&_vehicle_status);
-				send_controls();
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-				state = State::WaitingForEkf2Timestamp;
-#endif
-			}
-
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		if (pret == 0) {
+			// Timed out, try again.
+			continue;
 		}
 
+		if (pret < 0) {
+			PX4_ERR("poll error %s", strerror(errno));
+			continue;
+		}
+
+		if (fds_actuator_outputs[0].revents & POLLIN) {
+			// Got new data to read, update all topics.
+			parameters_update(false);
+			_vehicle_status_sub.update(&_vehicle_status);
+			send_controls();
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+			state = State::WaitingForEkf2Timestamp;
+#endif
+		}
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		//}
+
 #endif
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
-		if (state == State::WaitingForFirstEkf2Timestamp || state == State::WaitingForEkf2Timestamp) {
-			int pret = px4_poll(&fds_ekf2_timestamps[0], 1, 100);
+		//if (state == State::WaitingForFirstEkf2Timestamp || state == State::WaitingForEkf2Timestamp) {
+		//	printf("wait for ekf2 timestamp\n");
+		//	int pret = px4_poll(&fds_ekf2_timestamps[0], 1, 100);
+		//	printf("wait for ekf2 timestamp.. done\n");
 
-			if (pret == 0) {
-				// Timed out, try again.
-				continue;
-			}
+		//	if (pret == 0) {
+		//		// Timed out, try again.
+		//		continue;
+		//	}
 
-			if (pret < 0) {
-				PX4_ERR("poll error %s", strerror(errno));
-				continue;
-			}
+		//	if (pret < 0) {
+		//		PX4_ERR("poll error %s", strerror(errno));
+		//		continue;
+		//	}
 
-			if (fds_ekf2_timestamps[0].revents & POLLIN) {
-				ekf2_timestamps_s timestamps;
-				orb_copy(ORB_ID(ekf2_timestamps), _ekf2_timestamps_sub, &timestamps);
-				state = State::WaitingForActuatorControls;
-			}
-		}
+		//	if (fds_ekf2_timestamps[0].revents & POLLIN) {
+		//		ekf2_timestamps_s timestamps;
+		//		orb_copy(ORB_ID(ekf2_timestamps), _ekf2_timestamps_sub, &timestamps);
+		//		state = State::WaitingForActuatorControls;
+		//	}
+		//}
 
 #endif
 	}
