@@ -19,10 +19,10 @@
         <arg name="verbose" value="$(arg verbose)"/>
         <arg name="paused" value="$(arg paused)"/>
     </include>
-    <!-- UAV1 -->
-    <group ns="uav1">
+    <!-- UAV0 -->
+    <group ns="uav0">
         <!-- MAVROS and vehicle configs -->
-        <arg name="ID" value="1"/>
+        <arg name="ID" value="0"/>
         <arg name="fcu_url" default="udp://:14540@localhost:14580"/>
         <!-- PX4 SITL and vehicle spawn -->
         <include file="$(find px4)/launch/single_vehicle_spawn.launch">
