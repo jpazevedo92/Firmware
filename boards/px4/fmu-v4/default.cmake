@@ -14,7 +14,8 @@ px4_add_board(
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
 	DRIVERS
-		adc
+		adc/board_adc
+		adc/ads1115
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -29,9 +30,10 @@ px4_add_board(
 		imu/adis16477
 		imu/adis16497
 		imu/invensense/icm20602
-		imu/invensense/icm20608-g
-		imu/mpu6000
-		imu/mpu9250
+		imu/invensense/icm20608g
+		imu/invensense/icm40609d
+		imu/invensense/mpu6500
+		imu/invensense/mpu9250
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -41,10 +43,11 @@ px4_add_board(
 		optical_flow # all available optical flow drivers
 		#osd
 		pca9685
+		pca9685_pwm_out
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
-		px4fmu
+		pwm_out
 		rc_input
 		roboclaw
 		safety_button
@@ -61,6 +64,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
+		esc_battery
 		events
 		fw_att_control
 		fw_pos_control_l1
@@ -71,6 +75,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_hover_thrust_estimator
 		mc_pos_control
 		mc_rate_control
 		#micrortps_bridge
@@ -80,15 +85,15 @@ px4_add_board(
 		sensors
 		sih
 		temperature_compensation
+		uuv_att_control
 		vmount
 		vtol_att_control
-		uuv_att_control
 	SYSTEMCMDS
 		bl_update
-		config
 		#dmesg
 		dumpfile
 		esc_calib
+		gpio
 		hardfault_log
 		i2cdetect
 		led_control
@@ -103,7 +108,7 @@ px4_add_board(
 		reboot
 		reflect
 		sd_bench
-		shutdown
+		system_time
 		tests # tests and test runner
 		top
 		topic_listener
@@ -112,8 +117,10 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		bottle_drop # OBC challenge
+		fake_gyro
+		fake_magnetometer
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		gyro_fft
 		hello
 		hwtest # Hardware test
 		#matlab_csv_serial
@@ -121,4 +128,5 @@ px4_add_board(
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
 		uuv_example_app
+		work_item
 	)

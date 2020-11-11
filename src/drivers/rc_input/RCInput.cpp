@@ -37,10 +37,6 @@
 
 using namespace time_literals;
 
-#if defined(SPEKTRUM_POWER)
-static bool bind_spektrum(int arg);
-#endif /* SPEKTRUM_POWER */
-
 constexpr char const *RCInput::RC_SCAN_STRING[];
 
 RCInput::RCInput(const char *device) :
@@ -308,16 +304,17 @@ void RCInput::Run()
 		adc_report_s adc;
 
 		if (_adc_sub.update(&adc)) {
-			const unsigned adc_chans = sizeof(adc.channel_id) / sizeof(adc.channel_id[0]);
-
-			for (unsigned i = 0; i < adc_chans; i++) {
+			for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; ++i) {
 				if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
+					float adc_volt = adc.raw_data[i] *
+							 adc.v_ref /
+							 adc.resolution;
 
 					if (_analog_rc_rssi_volt < 0.0f) {
-						_analog_rc_rssi_volt = adc.channel_value[i];
+						_analog_rc_rssi_volt = adc_volt;
 					}
 
-					_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc.channel_value[i] * 0.005f;
+					_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc_volt * 0.005f;
 
 					/* only allow this to be used if we see a high RSSI once */
 					if (_analog_rc_rssi_volt > 2.5f) {
@@ -336,7 +333,7 @@ void RCInput::Run()
 		constexpr hrt_abstime rc_scan_max = 300_ms;
 
 		bool sbus_failsafe, sbus_frame_drop;
-		unsigned frame_drops;
+		unsigned frame_drops = 0;
 		bool dsm_11_bit;
 
 		if (_report_lock && _rc_scan_locked) {
@@ -605,7 +602,7 @@ void RCInput::Run()
 }
 
 #if defined(SPEKTRUM_POWER)
-bool bind_spektrum(int arg)
+bool RCInput::bind_spektrum(int arg) const
 {
 	int ret = PX4_ERROR;
 
@@ -651,7 +648,11 @@ int RCInput::custom_command(int argc, char *argv[])
 	const char *verb = argv[0];
 
 	if (!strcmp(verb, "bind")) {
-		bind_spektrum(DSMX8_BIND_PULSES);
+		uORB::Publication<vehicle_command_s> vehicle_command_pub{ORB_ID(vehicle_command)};
+		vehicle_command_s vcmd{};
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
+		vcmd.timestamp = hrt_absolute_time();
+		vehicle_command_pub.publish(vcmd);
 		return 0;
 	}
 

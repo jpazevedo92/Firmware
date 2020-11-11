@@ -56,7 +56,6 @@
 #include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
@@ -64,7 +63,7 @@
 #include <chip.h>
 #include <stm32_uart.h>
 #include <arch/board/board.h>
-#include "up_internal.h"
+#include "arm_internal.h"
 
 #include <px4_arch/io_timer.h>
 #include <drivers/drv_hrt.h>
@@ -82,7 +81,7 @@
 /* Configuration ************************************************************/
 
 /*
- * Ideally we'd be able to get these from up_internal.h,
+ * Ideally we'd be able to get these from arm_internal.h,
  * but since we want to be able to disable the NuttX use
  * of leds for system indication at will and there is no
  * separate switch, we need to build independent of the
@@ -94,51 +93,6 @@ extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
 
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as apposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-
-__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
-{
-
-	irqstate_t irqstate = px4_enter_critical_section();
-
-	uint32_t cr1 =	getreg32(STM32_USART_CR1_OFFSET + uxart_base);
-	uint32_t cr2 =	getreg32(STM32_USART_CR2_OFFSET + uxart_base);
-	uint32_t regval = cr1;
-
-	/* {R|T}XINV bit fields can only be written when the USART is disabled (UE=0). */
-
-	regval &= ~USART_CR1_UE;
-
-	putreg32(regval, STM32_USART_CR1_OFFSET + uxart_base);
-
-	if (invert_on) {
-#if defined(BOARD_HAS_RX_TX_SWAP) &&	RC_SERIAL_PORT_IS_SWAPED == 1
-
-		/* This is only ever turned on */
-
-		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV | USART_CR2_SWAP);
-#else
-		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV);
-#endif
-
-	} else {
-		cr2 &= ~(USART_CR2_RXINV | USART_CR2_TXINV);
-	}
-
-	putreg32(cr2, STM32_USART_CR2_OFFSET + uxart_base);
-	putreg32(cr1, STM32_USART_CR1_OFFSET + uxart_base);
-
-	leave_critical_section(irqstate);
-}
 
 /************************************************************************************
  * Name: board_peripheral_reset

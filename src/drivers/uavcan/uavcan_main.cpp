@@ -82,6 +82,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node(can_driver, system_clock, _pool_allocator),
 	_esc_controller(_node),
 	_hardpoint_controller(_node),
+	_rgbled_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
@@ -518,7 +519,7 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 
 	if (can == nullptr) {
 
-		can = new CanInitHelper();
+		can = new CanInitHelper(board_get_can_interfaces());
 
 		if (can == nullptr) {                    // We don't have exceptions so bad_alloc cannot be thrown
 			PX4_ERR("Out of memory");
@@ -616,6 +617,12 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 	ret = _hardpoint_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	ret = _rgbled_controller.init();
 
 	if (ret < 0) {
 		return ret;
@@ -748,6 +755,10 @@ UavcanNode::Run()
 
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
+
+	for (auto &br : _sensor_bridges) {
+		br->update();
+	}
 
 	node_spin_once(); // expected to be non-blocking
 
@@ -936,12 +947,15 @@ UavcanNode::print_info()
 		printf("CAN%u status:\n", unsigned(i + 1));
 
 		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
-		printf("\tHW errors: %llu\n", iface->getErrorCount());
 
-		auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
-		printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
-		printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
-		printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
+		if (iface) {
+			printf("\tHW errors: %llu\n", iface->getErrorCount());
+
+			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
+			printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
+			printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
+			printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
+		}
 	}
 
 	printf("\n");

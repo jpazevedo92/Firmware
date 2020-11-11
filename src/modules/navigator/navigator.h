@@ -41,7 +41,6 @@
 
 #pragma once
 
-#include "datalinkloss.h"
 #include "enginefailure.h"
 #include "follow_target.h"
 #include "geofence.h"
@@ -51,7 +50,6 @@
 #include "loiter.h"
 #include "mission.h"
 #include "navigator_mode.h"
-#include "rcloss.h"
 #include "rtl.h"
 #include "takeoff.h"
 
@@ -60,7 +58,7 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
@@ -83,7 +81,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 11
+#define NAVIGATOR_MODE_ARRAY_SIZE 9
 
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
@@ -242,7 +240,7 @@ public:
 	/**
 	 * Set the target throttle
 	 */
-	void		set_cruising_throttle(float throttle = -1.0f) { _mission_throttle = throttle; }
+	void		set_cruising_throttle(float throttle = NAN) { _mission_throttle = throttle; }
 
 	/**
 	 * Get the acceptance radius given the mission item preset radius
@@ -267,6 +265,7 @@ public:
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
+	int		mission_instance_count() const { return _mission_result.instance_count; }
 
 	void 		set_mission_failure(const char *reason);
 
@@ -344,8 +343,8 @@ private:
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
 
-	uORB::PublicationQueued<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
-	uORB::PublicationQueued<vehicle_command_s>	_vehicle_cmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_s>	_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 
 	// Subscriptions
 	home_position_s					_home_pos{};		/**< home position for RTL */
@@ -382,8 +381,6 @@ private:
 	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
-	RCLoss 		_rcLoss;				/**< class that handles RTL according to OBC rules (rc loss mode) */
-	DataLinkLoss	_dataLinkLoss;			/**< class that handles the OBC datalink loss mode */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
@@ -397,7 +394,7 @@ private:
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
-	float _mission_throttle{-1.0f};
+	float _mission_throttle{NAN};
 
 	// update subscriptions
 	void		params_update();
